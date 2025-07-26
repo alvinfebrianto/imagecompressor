@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Compressor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main>
+        <div class="upload-container">
+            <h1>Smart AVIF, WebP, PNG and JPEG Compression</h1>
+            <p>Compress images with the Tinify API</p>
+            <div class="api-key-selector">
+                <label for="api-key">Select API Key:</label>
+                <select id="api-key" name="api-key">
+                    <option value="GD0mk9XjMJTq4y2yjn8132F8cmCRTcWk">API Key 1</option>
+                    <option value="yPb1VM2c6JbNLkyBlPRWmTDp6jWsS5gJ">API Key 2</option>
+                </select>
+            </div>
+            <section id="upload-dropbox-zone" class="target">
+                <input type="file" title="" accept=".jpg, .jpeg, .png, .webp, .avif" multiple="">
+                <div class="text-wrapper">
+                    <p class="subtext">Drop your .png or .jpg files here!</p>
+                    <p class="subtext">Up to 20 images, max 5 MB each.</p>
+                </div>
+            </section>
+        </div>
+        <div class="upload__output-container">
+        </div>
+    </main>
+    <script src="script.js"></script>
+</body>
+</html>

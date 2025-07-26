@@ -1,0 +1,47 @@
+body {
+    font-family: 'Helvetica Neue', sans-serif;
+    background-color: #f7f7f7;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+main {
+    text-align: center;
+}
+
+.upload-container {
+    background: #fff;
+    padding: 2rem 4rem;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+h1 {
+    font-size: 2rem;
+    color: #333;
+}
+
+.target {
+    border: 3px dashed #ccc;
+    border-radius: 10px;
+    padding: 3rem;
+    margin-top: 2rem;
+    cursor: pointer;
+    transition: border-color 0.3s;
+}
+
+.target:hover {
+    border-color: #8CC938;
+}
+
+.text-wrapper .subtext {
+    color: #777;
+    margin: 0.5rem 0;
+}
+
+.upload__output-container {
+    margin-top: 2rem;
+}
