@@ -1,3 +1,8 @@
 name = "tinify-proxy"
 main = "index.js"
 compatibility_date = "2023-10-30"
+
+[[kv_namespaces]]
+binding = "API_KEY_INDEX"
+id = "6946ba2127894d879adbb1eb91bd6b99"
+preview_id = "your-kv-namespace-preview-id"
