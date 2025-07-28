@@ -182,12 +182,20 @@ export default {
       }
 
       // Return the location for simple compression
-      const compressData = await compressResponse.json();
-      return new Response(JSON.stringify({
-        location: finalLocation,
-        input: compressData.input,
-        output: compressData.output
-      }), {
+      let responseData;
+      try {
+        const compressData = await compressResponse.clone().json();
+        responseData = {
+          location: finalLocation,
+          input: compressData.input,
+          output: compressData.output
+        };
+      } catch (e) {
+        // If response is not JSON, just return location
+        responseData = { location: finalLocation };
+      }
+
+      return new Response(JSON.stringify(responseData), {
         headers: {
           "Content-Type": "application/json",
           "Access-Control-Allow-Origin": "*",

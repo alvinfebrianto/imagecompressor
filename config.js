@@ -1,7 +1,8 @@
 // Configuration file for environment variables
 // This file should be ignored in .gitignore for security
 
-const CONFIG = {
+window.CONFIG = window.CONFIG || {};
+Object.assign(window.CONFIG, {
     // Worker URL - can be set via environment variable or default
     WORKER_URL: window.location.hostname === 'localhost' 
         ? 'http://localhost:8787' // For local development
@@ -33,11 +34,4 @@ const CONFIG = {
         CONVERT_FORMAT: 'image/webp',
         BACKGROUND_COLOR: '#ffffff'
     }
-};
-
-// Export for use in other files
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = CONFIG;
-} else {
-    window.CONFIG = CONFIG;
-}
+});

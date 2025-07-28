@@ -1,8 +1,5 @@
-// Load configuration
-document.head.appendChild(Object.assign(document.createElement('script'), {
-    src: 'config.js',
-    onload: initializeApp
-}));
+// Initialize app when DOM is loaded
+document.addEventListener('DOMContentLoaded', initializeApp);
 
 // Global variables
 let currentOperation = 'compress';
@@ -21,10 +18,79 @@ function initializeApp() {
     const clearResultsBtn = document.getElementById("clear-results");
 
     // Initialize event listeners
+    setupThemeSystem();
     setupUploadZone();
     setupOperationTabs();
     setupConvertFormatChange();
     setupBatchActions();
+
+    function setupThemeSystem() {
+        const themeToggle = document.getElementById("theme-toggle");
+        const themeSelect = document.getElementById("theme-select");
+        const body = document.body;
+
+        // Load saved theme or default to auto
+        const savedTheme = localStorage.getItem('theme') || 'auto';
+        themeSelect.value = savedTheme;
+        applyTheme(savedTheme);
+
+        // Theme toggle button
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = themeSelect.value;
+            let nextTheme;
+
+            if (currentTheme === 'auto') {
+                nextTheme = 'light';
+            } else if (currentTheme === 'light') {
+                nextTheme = 'dark';
+            } else {
+                nextTheme = 'auto';
+            }
+
+            themeSelect.value = nextTheme;
+            applyTheme(nextTheme);
+            localStorage.setItem('theme', nextTheme);
+        });
+
+        // Theme dropdown
+        themeSelect.addEventListener('change', (e) => {
+            const theme = e.target.value;
+            applyTheme(theme);
+            localStorage.setItem('theme', theme);
+        });
+
+        function applyTheme(theme) {
+            // Remove existing theme attributes
+            body.removeAttribute('data-theme');
+
+            // Update toggle button icon
+            const icon = themeToggle.querySelector('i');
+
+            if (theme === 'light') {
+                body.setAttribute('data-theme', 'light');
+                icon.className = 'fas fa-sun';
+            } else if (theme === 'dark') {
+                body.setAttribute('data-theme', 'dark');
+                icon.className = 'fas fa-moon';
+            } else {
+                // Auto theme - let CSS handle it
+                icon.className = 'fas fa-adjust';
+            }
+        }
+
+        // Listen for system theme changes when in auto mode
+        if (window.matchMedia) {
+            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            mediaQuery.addEventListener('change', () => {
+                if (themeSelect.value === 'auto') {
+                    // Trigger a re-render by temporarily changing theme
+                    const currentTheme = body.getAttribute('data-theme');
+                    body.setAttribute('data-theme', currentTheme === 'dark' ? 'light' : 'dark');
+                    setTimeout(() => body.removeAttribute('data-theme'), 10);
+                }
+            });
+        }
+    }
 
     function setupUploadZone() {
         uploadZone.addEventListener("click", () => fileInput.click());
