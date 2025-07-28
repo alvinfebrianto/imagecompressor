@@ -8,6 +8,30 @@ export default {
     const url = new URL(request.url);
     const proxyUrl = url.searchParams.get("url");
 
+    // Debug endpoint
+    if (url.pathname === "/debug") {
+      return new Response(JSON.stringify({
+        message: "Worker debug info",
+        environment: {
+          availableKeys: Object.keys(env),
+          apiKey1Exists: 'API_KEY_1' in env,
+          apiKey2Exists: 'API_KEY_2' in env,
+          apiKey1Length: env.API_KEY_1 ? env.API_KEY_1.length : 0,
+          apiKey2Length: env.API_KEY_2 ? env.API_KEY_2.length : 0,
+          apiKey1Preview: env.API_KEY_1 ? `${env.API_KEY_1.substring(0, 5)}...` : 'not set',
+          apiKey2Preview: env.API_KEY_2 ? `${env.API_KEY_2.substring(0, 5)}...` : 'not set'
+        },
+        timestamp: new Date().toISOString()
+      }), {
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, X-API-Key, Authorization"
+        }
+      });
+    }
+
     if (proxyUrl) {
       const response = await fetch(proxyUrl);
       const newHeaders = new Headers(response.headers);
@@ -71,12 +95,19 @@ export default {
     }
 
     console.log("API Key found:", !!apiKey);
+    console.log("API Key length:", apiKey ? apiKey.length : 0);
 
-    if (!apiKey) {
+    if (!apiKey || apiKey.trim() === '') {
       return new Response(JSON.stringify({
-        message: "API key not configured",
+        message: "API key not configured or empty",
         selector: apiKeySelector,
-        availableKeys: Object.keys(env).filter(key => key.startsWith('API_KEY'))
+        availableKeys: Object.keys(env).filter(key => key.startsWith('API_KEY')),
+        keyExists: apiKeySelector in env,
+        keyEmpty: apiKey === '' || apiKey === undefined || apiKey === null,
+        debug: {
+          envKeys: Object.keys(env),
+          apiKeyValue: apiKey ? `${apiKey.substring(0, 5)}...` : 'null/undefined'
+        }
       }), {
         status: 500,
         headers: {

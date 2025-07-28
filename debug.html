@@ -69,6 +69,7 @@
     <div class="debug-section">
         <h2>1. Test Worker Connection</h2>
         <button onclick="testWorkerConnection()">Test Connection</button>
+        <button onclick="testWorkerDebug()">Debug Info</button>
         <div id="connection-result"></div>
     </div>
     
@@ -101,12 +102,12 @@
         async function testWorkerConnection() {
             const resultDiv = document.getElementById('connection-result');
             resultDiv.innerHTML = 'Testing connection...';
-            
+
             try {
                 const response = await fetch(WORKER_URL, {
                     method: 'OPTIONS'
                 });
-                
+
                 if (response.ok) {
                     resultDiv.innerHTML = '<div class="success">✅ Worker connection successful!</div>';
                     log('Worker connection test passed', 'success');
@@ -117,6 +118,30 @@
             } catch (error) {
                 resultDiv.innerHTML = `<div class="error">❌ Connection error: ${error.message}</div>`;
                 log(`Connection error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testWorkerDebug() {
+            const resultDiv = document.getElementById('connection-result');
+            resultDiv.innerHTML = 'Getting debug info...';
+
+            try {
+                const response = await fetch(WORKER_URL + '/debug');
+
+                if (response.ok) {
+                    const debugInfo = await response.json();
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ Debug info retrieved!</div>
+                        <pre>${JSON.stringify(debugInfo, null, 2)}</pre>
+                    `;
+                    log('Debug info retrieved successfully', 'success');
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Debug failed: ${response.status}</div>`;
+                    log(`Debug failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Debug error: ${error.message}</div>`;
+                log(`Debug error: ${error.message}`, 'error');
             }
         }
         
