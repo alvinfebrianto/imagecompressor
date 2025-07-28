@@ -40,18 +40,18 @@ function handleFiles(files) {
 }
 
 async function uploadFile(file) {
-    const formData = new FormData();
-    formData.append("image", file);
-    formData.append("apiKey", apiKeySelect.value);
-
+    const apiKey = apiKeySelect.value;
     const statusDiv = document.createElement("div");
     statusDiv.textContent = `Uploading ${file.name}...`;
     outputContainer.appendChild(statusDiv);
 
     try {
-        const response = await fetch("/compress", {
+        const response = await fetch("https://api.tinify.com/shrink", {
             method: "POST",
-            body: formData,
+            headers: {
+                "Authorization": "Basic " + btoa(`api:${apiKey}`)
+            },
+            body: file
         });
 
         if (!response.ok) {
@@ -59,18 +59,25 @@ async function uploadFile(file) {
             throw new Error(error.message || "Compression failed");
         }
 
-        const result = await response.json();
+        const location = response.headers.get("Location");
+
+        // The location URL can be used to download the compressed image.
+        // We can also fetch metadata from it.
+        const metaResponse = await fetch(location);
+        const compressedSize = metaResponse.headers.get('content-length');
+
 
         outputContainer.removeChild(statusDiv);
 
         const resultDiv = document.createElement("div");
         resultDiv.innerHTML = `
-            <p>${file.name} (${(file.size / 1024).toFixed(2)} KB) -> Compressed (${(result.output.size / 1024).toFixed(2)} KB)</p>
-            <a href="${result.output.url}" download>Download</a>
+            <p>${file.name} (${(file.size / 1024).toFixed(2)} KB) -> Compressed (${(compressedSize / 1024).toFixed(2)} KB)</p>
+            <a href="${location}" target="_blank" download="${file.name}">Download</a>
         `;
         outputContainer.appendChild(resultDiv);
 
     } catch (error) {
+        console.error("CORS or network error:", error);
         statusDiv.textContent = `Error compressing ${file.name}: ${error.message}`;
         statusDiv.style.color = "red";
     }
