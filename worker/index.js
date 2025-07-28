@@ -46,15 +46,23 @@ export default {
     }
 
     // Map the API key selector to actual API key from environment
+    console.log("API Key Selector:", apiKeySelector);
+    console.log("Available env keys:", Object.keys(env));
+
     let apiKey;
     if (apiKeySelector === "API_KEY_1") {
       apiKey = env.API_KEY_1;
     } else if (apiKeySelector === "API_KEY_2") {
       apiKey = env.API_KEY_2;
     } else {
-      return new Response("Invalid API key selector", {
+      return new Response(JSON.stringify({
+        message: "Invalid API key selector",
+        received: apiKeySelector,
+        expected: ["API_KEY_1", "API_KEY_2"]
+      }), {
         status: 400,
         headers: {
+          "Content-Type": "application/json",
           "Access-Control-Allow-Origin": "*",
           "Access-Control-Allow-Methods": "POST, OPTIONS",
           "Access-Control-Allow-Headers": "Content-Type, X-API-Key, Authorization"
@@ -62,10 +70,17 @@ export default {
       });
     }
 
+    console.log("API Key found:", !!apiKey);
+
     if (!apiKey) {
-      return new Response("API key not configured", {
+      return new Response(JSON.stringify({
+        message: "API key not configured",
+        selector: apiKeySelector,
+        availableKeys: Object.keys(env).filter(key => key.startsWith('API_KEY'))
+      }), {
         status: 500,
         headers: {
+          "Content-Type": "application/json",
           "Access-Control-Allow-Origin": "*",
           "Access-Control-Allow-Methods": "POST, OPTIONS",
           "Access-Control-Allow-Headers": "Content-Type, X-API-Key, Authorization"
@@ -77,6 +92,7 @@ export default {
       let requestBody = null;
       let fileData = null;
       let operation = 'compress';
+      let originalContentType = null;
 
       // Check if request is JSON (for resize/convert) or binary (for compress)
       const contentType = request.headers.get("Content-Type");
@@ -84,6 +100,7 @@ export default {
       if (contentType === "application/json") {
         requestBody = await request.json();
         operation = requestBody.operation || 'compress';
+        originalContentType = requestBody.fileType;
 
         // Convert base64 back to binary for TinyPNG API
         if (requestBody.fileData) {
@@ -97,12 +114,15 @@ export default {
       } else {
         // Direct file upload for compress operation
         fileData = await request.arrayBuffer();
+        originalContentType = contentType;
+        operation = 'compress'; // Default to compress for binary uploads
       }
 
       if (!fileData) {
-        return new Response("No file data provided", {
+        return new Response(JSON.stringify({ message: "No file data provided" }), {
           status: 400,
           headers: {
+            "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "POST, OPTIONS",
             "Access-Control-Allow-Headers": "Content-Type, X-API-Key, Authorization"
@@ -115,7 +135,7 @@ export default {
         method: "POST",
         headers: {
           "Authorization": "Basic " + btoa(`api:${apiKey}`),
-          "Content-Type": requestBody?.fileType || contentType,
+          "Content-Type": originalContentType || contentType,
         },
         body: fileData,
       });
@@ -135,7 +155,6 @@ export default {
 
       const location = compressResponse.headers.get("Location");
       let finalLocation = location;
-      let finalResponse = compressResponse;
 
       // Apply additional operations if specified
       if (operation !== 'compress' && requestBody) {
@@ -163,7 +182,6 @@ export default {
           });
 
           if (transformResponse.ok) {
-            finalResponse = transformResponse;
             // For transform operations, the response body is the final image
             const finalImageData = await transformResponse.arrayBuffer();
             return new Response(finalImageData, {
@@ -204,7 +222,12 @@ export default {
         },
       });
     } catch (error) {
-      return new Response(JSON.stringify({ message: error.message }), {
+      console.error("Worker error:", error);
+      return new Response(JSON.stringify({
+        message: error.message,
+        stack: error.stack,
+        timestamp: new Date().toISOString()
+      }), {
         status: 500,
         headers: {
           "Content-Type": "application/json",

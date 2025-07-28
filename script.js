@@ -315,19 +315,41 @@ function initializeApp() {
         queueItem.progress = 50;
         updateQueueItem(queueItem);
 
-        // Make request to worker
-        const response = await fetch(CONFIG.WORKER_URL, {
-            method: "POST",
-            headers: {
+        // Prepare request data
+        let requestBody, requestHeaders;
+
+        if (currentOperation === 'compress') {
+            requestBody = file;
+            requestHeaders = {
                 "X-API-Key": apiKey,
-                "Content-Type": currentOperation === 'compress' ? file.type : "application/json"
-            },
-            body: currentOperation === 'compress' ? file : JSON.stringify({
+                "Content-Type": file.type
+            };
+        } else {
+            requestBody = JSON.stringify({
                 ...payload,
                 fileData: await fileToBase64(file),
                 fileName: file.name,
                 fileType: file.type
-            })
+            });
+            requestHeaders = {
+                "X-API-Key": apiKey,
+                "Content-Type": "application/json"
+            };
+        }
+
+        console.log("Making request:", {
+            operation: currentOperation,
+            headers: requestHeaders,
+            bodyType: typeof requestBody,
+            fileSize: file.size,
+            fileName: file.name
+        });
+
+        // Make request to worker
+        const response = await fetch(CONFIG.WORKER_URL, {
+            method: "POST",
+            headers: requestHeaders,
+            body: requestBody
         });
 
         // Update progress
@@ -336,13 +358,31 @@ function initializeApp() {
 
         if (!response.ok) {
             let errorMessage = "Processing failed";
+            let errorDetails = null;
+
             try {
                 const error = await response.json();
                 errorMessage = error.message || error.error || errorMessage;
+                errorDetails = error;
+                console.error("Server error details:", error);
             } catch (e) {
                 errorMessage = response.statusText || errorMessage;
+                console.error("Failed to parse error response:", e);
             }
-            throw new Error(`${errorMessage} (Status: ${response.status})`);
+
+            const fullError = `${errorMessage} (Status: ${response.status})`;
+            console.error("Request failed:", {
+                status: response.status,
+                statusText: response.statusText,
+                errorDetails,
+                requestInfo: {
+                    operation: currentOperation,
+                    fileName: file.name,
+                    fileSize: file.size
+                }
+            });
+
+            throw new Error(fullError);
         }
 
         // Handle different response types
