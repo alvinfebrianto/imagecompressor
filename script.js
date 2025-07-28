@@ -46,10 +46,12 @@ async function uploadFile(file) {
     outputContainer.appendChild(statusDiv);
 
     try {
-        const response = await fetch("https://api.tinify.com/shrink", {
+        const workerUrl = "https://tinify-proxy.spidaone.workers.dev";
+        const response = await fetch(workerUrl, {
             method: "POST",
             headers: {
-                "Authorization": "Basic " + btoa(`api:${apiKey}`)
+                "X-API-Key": apiKey,
+                "Content-Type": file.type
             },
             body: file
         });
@@ -59,7 +61,7 @@ async function uploadFile(file) {
             throw new Error(error.message || "Compression failed");
         }
 
-        const location = response.headers.get("Location");
+        const { location } = await response.json();
 
         // The location URL can be used to download the compressed image.
         // We can also fetch metadata from it.
