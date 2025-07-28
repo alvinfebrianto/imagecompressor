@@ -74,19 +74,56 @@ export default {
     }
 
     try {
-      const response = await fetch("https://api.tinify.com/shrink", {
+      let requestBody = null;
+      let fileData = null;
+      let operation = 'compress';
+
+      // Check if request is JSON (for resize/convert) or binary (for compress)
+      const contentType = request.headers.get("Content-Type");
+
+      if (contentType === "application/json") {
+        requestBody = await request.json();
+        operation = requestBody.operation || 'compress';
+
+        // Convert base64 back to binary for TinyPNG API
+        if (requestBody.fileData) {
+          const binaryString = atob(requestBody.fileData);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          fileData = bytes.buffer;
+        }
+      } else {
+        // Direct file upload for compress operation
+        fileData = await request.arrayBuffer();
+      }
+
+      if (!fileData) {
+        return new Response("No file data provided", {
+          status: 400,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, X-API-Key, Authorization"
+          }
+        });
+      }
+
+      // First, compress the image
+      const compressResponse = await fetch("https://api.tinify.com/shrink", {
         method: "POST",
         headers: {
           "Authorization": "Basic " + btoa(`api:${apiKey}`),
-          "Content-Type": request.headers.get("Content-Type"),
+          "Content-Type": requestBody?.fileType || contentType,
         },
-        body: request.body,
+        body: fileData,
       });
 
-      if (!response.ok) {
-        const error = await response.json();
+      if (!compressResponse.ok) {
+        const error = await compressResponse.json();
         return new Response(JSON.stringify(error), {
-          status: response.status,
+          status: compressResponse.status,
           headers: {
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",
@@ -96,8 +133,61 @@ export default {
         });
       }
 
-      const location = response.headers.get("Location");
-      return new Response(JSON.stringify({ location }), {
+      const location = compressResponse.headers.get("Location");
+      let finalLocation = location;
+      let finalResponse = compressResponse;
+
+      // Apply additional operations if specified
+      if (operation !== 'compress' && requestBody) {
+        const transformPayload = {};
+
+        if (operation === 'resize' && requestBody.resize) {
+          transformPayload.resize = requestBody.resize;
+        }
+
+        if (operation === 'convert' && requestBody.convert) {
+          transformPayload.convert = requestBody.convert;
+          if (requestBody.transform) {
+            transformPayload.transform = requestBody.transform;
+          }
+        }
+
+        if (Object.keys(transformPayload).length > 0) {
+          const transformResponse = await fetch(location, {
+            method: "POST",
+            headers: {
+              "Authorization": "Basic " + btoa(`api:${apiKey}`),
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(transformPayload),
+          });
+
+          if (transformResponse.ok) {
+            finalResponse = transformResponse;
+            // For transform operations, the response body is the final image
+            const finalImageData = await transformResponse.arrayBuffer();
+            return new Response(finalImageData, {
+              headers: {
+                "Content-Type": transformResponse.headers.get("Content-Type"),
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "POST, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type, X-API-Key, Authorization",
+                "Image-Width": transformResponse.headers.get("Image-Width"),
+                "Image-Height": transformResponse.headers.get("Image-Height"),
+                "Content-Length": transformResponse.headers.get("Content-Length"),
+              },
+            });
+          }
+        }
+      }
+
+      // Return the location for simple compression
+      const compressData = await compressResponse.json();
+      return new Response(JSON.stringify({
+        location: finalLocation,
+        input: compressData.input,
+        output: compressData.output
+      }), {
         headers: {
           "Content-Type": "application/json",
           "Access-Control-Allow-Origin": "*",
@@ -119,7 +209,7 @@ export default {
   },
 };
 
-function handleOptions(request) {
+function handleOptions() {
   const headers = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "POST, OPTIONS",

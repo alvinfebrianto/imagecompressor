@@ -3,31 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Compressor</title>
+    <title>Advanced Image Processor</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <main>
-        <div class="upload-container">
-            <h1>Image Compressor</h1>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-image"></i> Advanced Image Processor</h1>
+            <p class="subtitle">Compress, Resize, and Convert your images with ease</p>
+        </header>
+
+        <div class="controls-panel">
             <div class="api-key-selector">
-                <label for="api-key">Select API Key:</label>
+                <label for="api-key">API Key:</label>
                 <select id="api-key" name="api-key">
-                    <option value="">-- Select API Key --</option>
-                    <option value="API_KEY_1">API Key 1</option>
+                    <option value="API_KEY_1" selected>API Key 1</option>
                     <option value="API_KEY_2">API Key 2</option>
                 </select>
             </div>
-            <section id="upload-dropbox-zone" class="target">
-                <input type="file" title="" accept=".jpg, .jpeg, .png, .webp, .avif" multiple="">
-                <div class="text-wrapper">
-                    <p class="subtext">Drop your .png or .jpg files here!</p>
+
+            <div class="operation-selector">
+                <label>Operation:</label>
+                <div class="operation-tabs">
+                    <button type="button" class="tab-btn active" data-operation="compress">
+                        <i class="fas fa-compress-alt"></i> Compress
+                    </button>
+                    <button type="button" class="tab-btn" data-operation="resize">
+                        <i class="fas fa-expand-arrows-alt"></i> Resize
+                    </button>
+                    <button type="button" class="tab-btn" data-operation="convert">
+                        <i class="fas fa-exchange-alt"></i> Convert
+                    </button>
                 </div>
-            </section>
+            </div>
+
+            <!-- Resize Options -->
+            <div id="resize-options" class="options-panel" style="display: none;">
+                <div class="resize-controls">
+                    <div class="resize-method">
+                        <label for="resize-method">Method:</label>
+                        <select id="resize-method">
+                            <option value="fit">Fit (maintain aspect ratio)</option>
+                            <option value="cover">Cover (crop if needed)</option>
+                            <option value="scale">Scale (width or height only)</option>
+                            <option value="thumb">Thumb (smart crop)</option>
+                        </select>
+                    </div>
+                    <div class="resize-dimensions">
+                        <div class="dimension-input">
+                            <label for="resize-width">Width:</label>
+                            <input type="number" id="resize-width" placeholder="px" min="1">
+                        </div>
+                        <div class="dimension-input">
+                            <label for="resize-height">Height:</label>
+                            <input type="number" id="resize-height" placeholder="px" min="1">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Convert Options -->
+            <div id="convert-options" class="options-panel" style="display: none;">
+                <div class="convert-controls">
+                    <div class="convert-format">
+                        <label for="convert-format">Convert to:</label>
+                        <select id="convert-format">
+                            <option value="image/webp">WebP</option>
+                            <option value="image/jpeg">JPEG</option>
+                            <option value="image/png">PNG</option>
+                            <option value="image/avif">AVIF</option>
+                        </select>
+                    </div>
+                    <div class="background-color" id="background-color-section" style="display: none;">
+                        <label for="background-color">Background Color:</label>
+                        <input type="color" id="background-color" value="#ffffff">
+                        <span class="color-label">For transparent images</span>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="upload__output-container">
+
+        <section id="upload-dropbox-zone" class="upload-zone">
+            <input type="file" id="file-input" accept=".jpg, .jpeg, .png, .webp, .avif" multiple>
+            <div class="upload-content">
+                <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                <p class="upload-text">Drop your images here or click to browse</p>
+                <p class="upload-subtext">Supports JPEG, PNG, WebP, AVIF • Multiple files allowed</p>
+            </div>
+        </section>
+
+        <div class="processing-queue" id="processing-queue" style="display: none;">
+            <h3><i class="fas fa-tasks"></i> Processing Queue</h3>
+            <div class="queue-items" id="queue-items"></div>
         </div>
-    </main>
+
+        <div class="results-container" id="results-container" style="display: none;">
+            <h3><i class="fas fa-check-circle"></i> Results</h3>
+            <div class="results-grid" id="results-grid"></div>
+            <div class="batch-actions">
+                <button id="download-all" class="btn btn-primary">
+                    <i class="fas fa-download"></i> Download All
+                </button>
+                <button id="clear-results" class="btn btn-secondary">
+                    <i class="fas fa-trash"></i> Clear Results
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
