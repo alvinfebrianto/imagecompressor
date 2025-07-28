@@ -65,7 +65,7 @@ async function uploadFile(file) {
 
         // The location URL can be used to download the compressed image.
         // We can also fetch metadata from it.
-        const metaResponse = await fetch(location);
+        const metaResponse = await fetch(`${workerUrl}?url=${encodeURIComponent(location)}`);
         const compressedSize = metaResponse.headers.get('content-length');
 
 

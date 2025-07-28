@@ -5,6 +5,23 @@ export default {
       return handleOptions(request);
     }
 
+    const url = new URL(request.url);
+    const proxyUrl = url.searchParams.get("url");
+
+    if (proxyUrl) {
+      const response = await fetch(proxyUrl);
+      const newHeaders = new Headers(response.headers);
+      newHeaders.set("Access-Control-Allow-Origin", "*");
+      newHeaders.set("Access-Control-Allow-Methods", "GET, HEAD, POST, OPTIONS");
+      newHeaders.set("Access-Control-Allow-Headers", "Content-Type, X-API-Key, Authorization");
+
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: newHeaders,
+      });
+    }
+
     if (request.method !== "POST") {
       return new Response("Method Not Allowed", { status: 405 });
     }
