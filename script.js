@@ -33,6 +33,13 @@ fileInput.addEventListener("change", (e) => {
 });
 
 function handleFiles(files) {
+    // Validate API key selection
+    const apiKey = apiKeySelect.value;
+    if (!apiKey) {
+        alert("Please select an API key before uploading files.");
+        return;
+    }
+
     outputContainer.innerHTML = ""; // Clear previous results
     for (const file of files) {
         uploadFile(file);
@@ -57,8 +64,15 @@ async function uploadFile(file) {
         });
 
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || "Compression failed");
+            let errorMessage = "Compression failed";
+            try {
+                const error = await response.json();
+                errorMessage = error.message || error.error || errorMessage;
+            } catch (e) {
+                // If response is not JSON, use status text
+                errorMessage = response.statusText || errorMessage;
+            }
+            throw new Error(`${errorMessage} (Status: ${response.status})`);
         }
 
         const { location } = await response.json();

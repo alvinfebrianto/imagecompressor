@@ -23,12 +23,54 @@ export default {
     }
 
     if (request.method !== "POST") {
-      return new Response("Method Not Allowed", { status: 405 });
+      return new Response("Method Not Allowed", {
+        status: 405,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, X-API-Key, Authorization"
+        }
+      });
     }
 
-    const apiKey = request.headers.get("X-API-Key");
+    const apiKeySelector = request.headers.get("X-API-Key");
+    if (!apiKeySelector) {
+      return new Response("API key is missing", {
+        status: 400,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, X-API-Key, Authorization"
+        }
+      });
+    }
+
+    // Map the API key selector to actual API key from environment
+    let apiKey;
+    if (apiKeySelector === "API_KEY_1") {
+      apiKey = env.API_KEY_1;
+    } else if (apiKeySelector === "API_KEY_2") {
+      apiKey = env.API_KEY_2;
+    } else {
+      return new Response("Invalid API key selector", {
+        status: 400,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, X-API-Key, Authorization"
+        }
+      });
+    }
+
     if (!apiKey) {
-      return new Response("API key is missing", { status: 400 });
+      return new Response("API key not configured", {
+        status: 500,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, X-API-Key, Authorization"
+        }
+      });
     }
 
     try {
@@ -45,7 +87,12 @@ export default {
         const error = await response.json();
         return new Response(JSON.stringify(error), {
           status: response.status,
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, X-API-Key, Authorization"
+          },
         });
       }
 
@@ -54,10 +101,20 @@ export default {
         headers: {
           "Content-Type": "application/json",
           "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, X-API-Key, Authorization"
         },
       });
     } catch (error) {
-      return new Response(error.message, { status: 500 });
+      return new Response(JSON.stringify({ message: error.message }), {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, X-API-Key, Authorization"
+        }
+      });
     }
   },
 };
