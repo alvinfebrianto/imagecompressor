@@ -19,6 +19,7 @@ function initializeApp() {
 
     // Initialize event listeners
     setupThemeSystem();
+    setupApiKeySelection();
     setupUploadZone();
     setupOperationTabs();
     setupConvertFormatChange();
@@ -98,6 +99,17 @@ function initializeApp() {
                 }
             });
         }
+    }
+
+    function setupApiKeySelection() {
+        // Load saved API key or default to API_KEY_1
+        const savedApiKey = localStorage.getItem('selectedApiKey') || 'API_KEY_1';
+        apiKeySelect.value = savedApiKey;
+
+        // Save API key selection when changed
+        apiKeySelect.addEventListener('change', (e) => {
+            localStorage.setItem('selectedApiKey', e.target.value);
+        });
     }
 
     function setupUploadZone() {

@@ -16,10 +16,19 @@ export default {
           availableKeys: Object.keys(env),
           apiKey1Exists: 'API_KEY_1' in env,
           apiKey2Exists: 'API_KEY_2' in env,
+          apiKey3Exists: 'API_KEY_3' in env,
+          apiKey4Exists: 'API_KEY_4' in env,
+          apiKey5Exists: 'API_KEY_5' in env,
           apiKey1Length: env.API_KEY_1 ? env.API_KEY_1.length : 0,
           apiKey2Length: env.API_KEY_2 ? env.API_KEY_2.length : 0,
+          apiKey3Length: env.API_KEY_3 ? env.API_KEY_3.length : 0,
+          apiKey4Length: env.API_KEY_4 ? env.API_KEY_4.length : 0,
+          apiKey5Length: env.API_KEY_5 ? env.API_KEY_5.length : 0,
           apiKey1Preview: env.API_KEY_1 ? `${env.API_KEY_1.substring(0, 5)}...` : 'not set',
-          apiKey2Preview: env.API_KEY_2 ? `${env.API_KEY_2.substring(0, 5)}...` : 'not set'
+          apiKey2Preview: env.API_KEY_2 ? `${env.API_KEY_2.substring(0, 5)}...` : 'not set',
+          apiKey3Preview: env.API_KEY_3 ? `${env.API_KEY_3.substring(0, 5)}...` : 'not set',
+          apiKey4Preview: env.API_KEY_4 ? `${env.API_KEY_4.substring(0, 5)}...` : 'not set',
+          apiKey5Preview: env.API_KEY_5 ? `${env.API_KEY_5.substring(0, 5)}...` : 'not set'
         },
         timestamp: new Date().toISOString()
       }), {
@@ -78,11 +87,17 @@ export default {
       apiKey = env.API_KEY_1;
     } else if (apiKeySelector === "API_KEY_2") {
       apiKey = env.API_KEY_2;
+    } else if (apiKeySelector === "API_KEY_3") {
+      apiKey = env.API_KEY_3;
+    } else if (apiKeySelector === "API_KEY_4") {
+      apiKey = env.API_KEY_4;
+    } else if (apiKeySelector === "API_KEY_5") {
+      apiKey = env.API_KEY_5;
     } else {
       return new Response(JSON.stringify({
         message: "Invalid API key selector",
         received: apiKeySelector,
-        expected: ["API_KEY_1", "API_KEY_2"]
+        expected: ["API_KEY_1", "API_KEY_2", "API_KEY_3", "API_KEY_4", "API_KEY_5"]
       }), {
         status: 400,
         headers: {
