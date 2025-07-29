@@ -241,15 +241,31 @@ function initializeApp() {
         const statusEl = queueItemEl.querySelector(".queue-item-status");
         const progressFill = queueItemEl.querySelector(".progress-fill");
         const progressText = queueItemEl.querySelector(".progress-text");
+        const progressBar = queueItemEl.querySelector(".progress-bar");
 
         statusEl.textContent = queueItem.status;
         progressFill.style.width = `${queueItem.progress}%`;
         progressText.textContent = `${queueItem.progress}%`;
 
-        if (queueItem.status === 'completed') {
+        // Remove all animation classes first
+        progressFill.classList.remove('processing', 'completed');
+        progressBar.classList.remove('queued');
+
+        // Add appropriate animation class
+        if (queueItem.status === 'queued' && queueItem.progress === 0) {
+            progressBar.classList.add('queued');
+        } else if (queueItem.status === 'Processing' && queueItem.progress > 0 && queueItem.progress < 100) {
+            progressFill.classList.add('processing');
+        } else if (queueItem.status === 'Completed' && queueItem.progress === 100) {
+            progressFill.classList.add('completed');
+        }
+
+        if (queueItem.status === 'Completed') {
             queueItemEl.style.borderLeftColor = "#28a745";
         } else if (queueItem.status === 'error') {
             queueItemEl.style.borderLeftColor = "#dc3545";
+        } else if (queueItem.status === 'Processing') {
+            queueItemEl.style.borderLeftColor = "#667eea";
         }
     }
     async function processQueue() {
@@ -591,7 +607,14 @@ function previewImage(url, filename) {
     modal.appendChild(closeBtn);
     document.body.appendChild(modal);
 
-    const closeModal = () => document.body.removeChild(modal);
+    const closeModal = () => {
+        if (modal && modal.parentNode === document.body) {
+            document.body.removeChild(modal);
+        }
+    };
     modal.addEventListener('click', closeModal);
-    closeBtn.addEventListener('click', closeModal);
+    closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeModal();
+    });
 }
