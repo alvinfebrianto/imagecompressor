@@ -1,13 +1,9 @@
-// Configuration file for environment variables
-// This file should be ignored in .gitignore for security
-
 window.CONFIG = window.CONFIG || {};
+
+// Initialize config with default values
 Object.assign(window.CONFIG, {
-    // Worker URL - can be set via environment variable or default
-    WORKER_URL: window.location.hostname === 'localhost' 
-        ? 'http://localhost:8787' // For local development
-        : 'https://tinify-proxy.spidaone.workers.dev', // Production
-    
+    WORKER_URL: null,
+
     // API endpoints
     ENDPOINTS: {
         PROCESS: '/',
@@ -35,3 +31,32 @@ Object.assign(window.CONFIG, {
         BACKGROUND_COLOR: '#ffffff'
     }
 });
+
+// Function to initialize worker URL dynamically
+window.CONFIG.initializeWorkerUrl = async function() {
+    if (window.CONFIG.WORKER_URL) {
+        return window.CONFIG.WORKER_URL;
+    }
+
+    try {
+        // For localhost development, use local worker
+        if (window.location.hostname === 'localhost') {
+            window.CONFIG.WORKER_URL = 'http://localhost:8787';
+            return window.CONFIG.WORKER_URL;
+        }
+
+        // For production, try to get URL from worker's config endpoint
+        const response = await fetch('/config');
+        if (response.ok) {
+            const config = await response.json();
+            window.CONFIG.WORKER_URL = config.workerUrl;
+            return window.CONFIG.WORKER_URL;
+        }
+    } catch (error) {
+        console.warn('Failed to fetch worker URL from config endpoint:', error);
+    }
+
+    // Fallback: construct URL from current location
+    window.CONFIG.WORKER_URL = window.location.origin;
+    return window.CONFIG.WORKER_URL;
+};

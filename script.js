@@ -73,7 +73,13 @@ function initializeApp() {
                 body.setAttribute('data-theme', 'dark');
                 icon.className = 'fas fa-moon';
             } else {
-                // Auto theme - let CSS handle it
+                // Auto theme - apply system preference immediately
+                const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (prefersDark) {
+                    body.setAttribute('data-theme', 'auto-dark');
+                } else {
+                    body.setAttribute('data-theme', 'auto-light');
+                }
                 icon.className = 'fas fa-adjust';
             }
         }
@@ -81,12 +87,14 @@ function initializeApp() {
         // Listen for system theme changes when in auto mode
         if (window.matchMedia) {
             const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-            mediaQuery.addEventListener('change', () => {
+            mediaQuery.addEventListener('change', (e) => {
                 if (themeSelect.value === 'auto') {
-                    // Trigger a re-render by temporarily changing theme
-                    const currentTheme = body.getAttribute('data-theme');
-                    body.setAttribute('data-theme', currentTheme === 'dark' ? 'light' : 'dark');
-                    setTimeout(() => body.removeAttribute('data-theme'), 10);
+                    // Update auto theme based on system preference
+                    if (e.matches) {
+                        body.setAttribute('data-theme', 'auto-dark');
+                    } else {
+                        body.setAttribute('data-theme', 'auto-light');
+                    }
                 }
             });
         }
@@ -248,13 +256,13 @@ function initializeApp() {
         const activeItems = processingQueue.filter(item => item.status === 'queued');
 
         for (const queueItem of activeItems) {
-            queueItem.status = 'processing';
+            queueItem.status = 'Processing';
             queueItem.progress = 10;
             updateQueueItem(queueItem);
 
             try {
                 const result = await processFile(queueItem.file, queueItem);
-                queueItem.status = 'completed';
+                queueItem.status = 'Completed';
                 queueItem.progress = 100;
                 queueItem.result = result;
                 updateQueueItem(queueItem);
@@ -277,6 +285,9 @@ function initializeApp() {
 
     async function processFile(file, queueItem) {
         const apiKey = apiKeySelect.value;
+
+        // Initialize worker URL if not already done
+        const workerUrl = await window.CONFIG.initializeWorkerUrl();
 
         // Update progress
         queueItem.progress = 30;
@@ -346,7 +357,7 @@ function initializeApp() {
         });
 
         // Make request to worker
-        const response = await fetch(CONFIG.WORKER_URL, {
+        const response = await fetch(workerUrl, {
             method: "POST",
             headers: requestHeaders,
             body: requestBody
@@ -410,7 +421,7 @@ function initializeApp() {
 
             if (data.location) {
                 // Fetch the compressed image
-                const imageResponse = await fetch(`${CONFIG.WORKER_URL}${CONFIG.ENDPOINTS.PROXY}${encodeURIComponent(data.location)}`);
+                const imageResponse = await fetch(`${workerUrl}${window.CONFIG.ENDPOINTS.PROXY}${encodeURIComponent(data.location)}`);
                 const imageBlob = await imageResponse.blob();
                 const imageUrl = URL.createObjectURL(imageBlob);
 
