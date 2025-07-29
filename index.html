@@ -112,20 +112,25 @@
         </section>
 
         <div class="processing-queue" id="processing-queue" style="display: none;">
-            <h3><i class="fas fa-tasks"></i> Processing Queue</h3>
+            <div class="queue-header" id="queue-header">
+                <div class="queue-status">
+                    <h3 class="queue-title" id="queue-title">Just a minute...</h3>
+                    <p class="queue-description" id="queue-description">Your images are being optimized right now. Please give us a moment to finish getting the best results for you.</p>
+                </div>
+                <div class="queue-progress">
+                    <span class="overall-progress" id="overall-progress">0%</span>
+                </div>
+            </div>
             <div class="queue-items" id="queue-items"></div>
-        </div>
-
-        <div class="results-container" id="results-container" style="display: none;">
-            <h3><i class="fas fa-check-circle"></i> Results</h3>
-            <div class="results-grid" id="results-grid"></div>
-            <div class="batch-actions">
-                <button id="download-all" class="btn btn-primary">
-                    <i class="fas fa-download"></i> Download All
-                </button>
-                <button id="clear-results" class="btn btn-secondary">
-                    <i class="fas fa-trash"></i> Clear Results
-                </button>
+            <div class="queue-footer" id="queue-footer" style="display: none;">
+                <div class="batch-actions">
+                    <button id="download-all" class="btn btn-primary">
+                        <i class="fas fa-download"></i> Download All
+                    </button>
+                    <button id="clear-results" class="btn btn-secondary">
+                        <i class="fas fa-trash"></i> Clear Results
+                    </button>
+                </div>
             </div>
         </div>
     </div>

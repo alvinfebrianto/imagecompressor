@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', initializeApp);
 let currentOperation = 'compress';
 let processingQueue = [];
 let completedResults = [];
+let isProcessingFiles = false;
 
 function initializeApp() {
     // DOM elements
@@ -17,9 +18,15 @@ function initializeApp() {
     const downloadAllBtn = document.getElementById("download-all");
     const clearResultsBtn = document.getElementById("clear-results");
 
-    // Initialize event listeners
-    setupThemeSystem();
+    // Verify critical elements exist
+    if (!uploadZone || !fileInput || !apiKeySelect) {
+        console.error("Critical DOM elements not found");
+        return;
+    }
+
+    // Initialize event listeners - API key setup must come first
     setupApiKeySelection();
+    setupThemeSystem();
     setupUploadZone();
     setupOperationTabs();
     setupConvertFormatChange();
@@ -104,7 +111,16 @@ function initializeApp() {
     function setupApiKeySelection() {
         // Load saved API key or default to API_KEY_1
         const savedApiKey = localStorage.getItem('selectedApiKey') || 'API_KEY_1';
-        apiKeySelect.value = savedApiKey;
+
+        // Ensure the select element has the correct value
+        if (apiKeySelect) {
+            apiKeySelect.value = savedApiKey;
+
+            // If the value didn't set properly, try setting it to the first available option
+            if (!apiKeySelect.value && apiKeySelect.options.length > 0) {
+                apiKeySelect.value = apiKeySelect.options[0].value;
+            }
+        }
 
         // Save API key selection when changed
         apiKeySelect.addEventListener('change', (e) => {
@@ -113,7 +129,13 @@ function initializeApp() {
     }
 
     function setupUploadZone() {
-        uploadZone.addEventListener("click", () => fileInput.click());
+        uploadZone.addEventListener("click", (e) => {
+            // Only trigger file input click if we didn't click directly on the file input
+            if (e.target !== fileInput) {
+                e.preventDefault();
+                fileInput.click();
+            }
+        });
 
         uploadZone.addEventListener("dragover", (e) => {
             e.preventDefault();
@@ -134,7 +156,10 @@ function initializeApp() {
 
         fileInput.addEventListener("change", (e) => {
             const files = Array.from(e.target.files);
-            handleFiles(files);
+
+            if (files.length > 0 && !isProcessingFiles) {
+                handleFiles(files);
+            }
         });
     }
 
@@ -191,6 +216,11 @@ function initializeApp() {
     function handleFiles(files) {
         if (files.length === 0) return;
 
+        // Prevent double processing
+        if (isProcessingFiles) {
+            return;
+        }
+
         // Validate files
         const errors = validateFiles(files);
         if (errors.length > 0) {
@@ -198,12 +228,26 @@ function initializeApp() {
             return;
         }
 
-        // Validate API key
-        const apiKey = apiKeySelect.value;
-        if (!apiKey) {
-            alert("Please select an API key before uploading files.");
-            return;
+        // Validate API key with fallback
+        let apiKey = apiKeySelect.value;
+
+        // If no API key is selected, try to set a default
+        if (!apiKey || apiKey.trim() === '') {
+            // Try to set the first available option
+            if (apiKeySelect.options.length > 0) {
+                apiKeySelect.value = apiKeySelect.options[0].value;
+                apiKey = apiKeySelect.value;
+            }
+
+            // If still no API key, show error
+            if (!apiKey || apiKey.trim() === '') {
+                alert("Please select an API key before uploading files.");
+                return;
+            }
         }
+
+        // Set processing flag
+        isProcessingFiles = true;
 
         // Add files to processing queue
         files.forEach(file => {
@@ -224,6 +268,13 @@ function initializeApp() {
 
         // Start processing
         processQueue();
+
+        // Reset file input to allow selecting the same files again
+        // Do this after a small delay to avoid potential race conditions
+        setTimeout(() => {
+            fileInput.value = '';
+            isProcessingFiles = false; // Reset processing flag
+        }, 100);
     }
 
     function addQueueItemToDOM(queueItem) {
@@ -232,15 +283,34 @@ function initializeApp() {
         queueItemEl.className = "queue-item";
         queueItemEl.id = `queue-item-${queueItem.id}`;
 
+        // Create thumbnail URL for the original file
+        const thumbnailUrl = URL.createObjectURL(queueItem.file);
+        const fileSize = formatFileSize(queueItem.file.size);
+        const fileFormat = queueItem.file.type.split('/')[1].toUpperCase();
+
         queueItemEl.innerHTML = `
-            <div class="queue-item-header">
-                <span class="queue-item-name">${queueItem.file.name}</span>
-                <span class="queue-item-status">Queued</span>
+            <div class="queue-item-thumbnail">
+                <img src="${thumbnailUrl}" alt="${queueItem.file.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <i class="fas fa-image" style="display: none;"></i>
             </div>
-            <div class="progress-bar">
-                <div class="progress-fill"></div>
+            <div class="queue-item-content">
+                <div class="queue-item-header">
+                    <div class="queue-item-info">
+                        <div class="queue-item-name">${queueItem.file.name}</div>
+                        <div class="queue-item-details">
+                            <span class="queue-item-format">${fileFormat}</span>
+                            <span class="queue-item-size">${fileSize}</span>
+                        </div>
+                    </div>
+                    <div class="queue-item-status">Optimizing...</div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
             </div>
-            <div class="progress-text">0%</div>
+            <div class="queue-item-actions">
+                <!-- Actions will be added when completed -->
+            </div>
         `;
 
         queueItems.appendChild(queueItemEl);
@@ -252,32 +322,88 @@ function initializeApp() {
 
         const statusEl = queueItemEl.querySelector(".queue-item-status");
         const progressFill = queueItemEl.querySelector(".progress-fill");
-        const progressText = queueItemEl.querySelector(".progress-text");
         const progressBar = queueItemEl.querySelector(".progress-bar");
+        const actionsEl = queueItemEl.querySelector(".queue-item-actions");
 
-        statusEl.textContent = queueItem.status;
+        // Update progress
         progressFill.style.width = `${queueItem.progress}%`;
-        progressText.textContent = `${queueItem.progress}%`;
 
-        // Remove all animation classes first
+        // Remove all animation and status classes first
         progressFill.classList.remove('processing', 'completed');
         progressBar.classList.remove('queued');
+        queueItemEl.classList.remove('completed', 'error', 'processing');
 
-        // Add appropriate animation class
         if (queueItem.status === 'queued' && queueItem.progress === 0) {
+            statusEl.textContent = 'Waiting...';
             progressBar.classList.add('queued');
-        } else if (queueItem.status === 'Processing' && queueItem.progress > 0 && queueItem.progress < 100) {
-            progressFill.classList.add('processing');
-        } else if (queueItem.status === 'Completed' && queueItem.progress === 100) {
+        } else if (queueItem.status === 'Processing') {
+            statusEl.textContent = 'Optimizing...';
+            queueItemEl.classList.add('processing');
+            if (queueItem.progress > 0 && queueItem.progress < 100) {
+                progressFill.classList.add('processing');
+            }
+        } else if (queueItem.status === 'Completed' && queueItem.result) {
+            queueItemEl.classList.add('completed');
             progressFill.classList.add('completed');
+
+            // Calculate compression ratio
+            const compressionRatio = ((1 - queueItem.result.processedSize / queueItem.result.originalSize) * 100).toFixed(0);
+            const processedSize = formatFileSize(queueItem.result.processedSize);
+
+            // Update status to show compression results prominently
+            statusEl.innerHTML = `
+                <div class="compression-result">
+                    <span class="compression-percentage">-${compressionRatio}%</span>
+                    <span class="compressed-size">${processedSize}</span>
+                </div>
+            `;
+
+            // Add download button
+            actionsEl.innerHTML = `
+                <button class="btn btn-primary btn-small" onclick="downloadFile('${queueItem.result.url}', '${getProcessedFileName(queueItem.file.name)}')">
+                    <i class="fas fa-download"></i>
+                </button>
+            `;
+        } else if (queueItem.status === 'error') {
+            queueItemEl.classList.add('error');
+            statusEl.textContent = 'Failed';
+            actionsEl.innerHTML = `
+                <i class="fas fa-exclamation-triangle" style="color: var(--error);"></i>
+            `;
         }
 
-        if (queueItem.status === 'Completed') {
-            queueItemEl.style.borderLeftColor = "#28a745";
-        } else if (queueItem.status === 'error') {
-            queueItemEl.style.borderLeftColor = "#dc3545";
-        } else if (queueItem.status === 'Processing') {
-            queueItemEl.style.borderLeftColor = "#667eea";
+        // Update overall progress
+        updateOverallProgress();
+    }
+
+    function updateOverallProgress() {
+        const totalItems = processingQueue.length;
+        const completedItems = processingQueue.filter(item => item.status === 'Completed').length;
+        const processingItems = processingQueue.filter(item => item.status === 'Processing').length;
+
+        const queueTitle = document.getElementById('queue-title');
+        const queueDescription = document.getElementById('queue-description');
+        const overallProgress = document.getElementById('overall-progress');
+        const queueFooter = document.getElementById('queue-footer');
+
+        if (totalItems === 0) return;
+
+        const progressPercentage = Math.round((completedItems / totalItems) * 100);
+        overallProgress.textContent = `${progressPercentage}%`;
+
+        if (completedItems === totalItems) {
+            queueTitle.textContent = 'All done!';
+            queueTitle.style.color = '#28a745';
+            queueDescription.textContent = 'Your images have been successfully optimized. You can now download them individually or all at once.';
+            queueFooter.style.display = 'block';
+        } else if (processingItems > 0) {
+            queueTitle.textContent = `Just a minute... (${completedItems + processingItems}/${totalItems})`;
+            queueTitle.style.color = '#9ACD32';
+            queueDescription.textContent = 'Your images are being optimized right now. Please give us a moment to finish getting the best results for you.';
+        } else {
+            queueTitle.textContent = `Processing... (${completedItems}/${totalItems})`;
+            queueTitle.style.color = '#667eea';
+            queueDescription.textContent = 'Your images are in the queue and will be processed shortly.';
         }
     }
     async function processQueue() {
@@ -297,10 +423,6 @@ function initializeApp() {
 
                 // Add to completed results
                 completedResults.push(queueItem);
-                addResultToDOM(queueItem);
-
-                // Show results container
-                document.getElementById("results-container").style.display = "block";
 
             } catch (error) {
                 queueItem.status = 'error';
@@ -476,50 +598,7 @@ function initializeApp() {
         });
     }
 
-    function addResultToDOM(queueItem) {
-        const resultsGrid = document.getElementById("results-grid");
-        const result = queueItem.result;
 
-        const compressionRatio = ((1 - result.processedSize / result.originalSize) * 100).toFixed(1);
-        const savings = result.originalSize - result.processedSize;
-
-        const resultCard = document.createElement("div");
-        resultCard.className = "result-card";
-        resultCard.innerHTML = `
-            <div class="result-header">
-                <i class="fas fa-check-circle result-icon"></i>
-                <span class="result-filename">${queueItem.file.name}</span>
-            </div>
-            <div class="result-stats">
-                <div class="stat-item">
-                    <div class="stat-label">Original</div>
-                    <div class="stat-value">${formatFileSize(result.originalSize)}</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Processed</div>
-                    <div class="stat-value">${formatFileSize(result.processedSize)}</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Saved</div>
-                    <div class="stat-value">${formatFileSize(savings)}</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Compression</div>
-                    <div class="compression-ratio">${compressionRatio}%</div>
-                </div>
-            </div>
-            <div class="result-actions">
-                <button class="btn btn-outline btn-small" onclick="previewImage('${result.url}', '${queueItem.file.name}')">
-                    <i class="fas fa-eye"></i> Preview
-                </button>
-                <a href="${result.url}" download="${getProcessedFileName(queueItem.file.name)}" class="btn btn-primary btn-small">
-                    <i class="fas fa-download"></i> Download
-                </a>
-            </div>
-        `;
-
-        resultsGrid.appendChild(resultCard);
-    }
 
     function formatFileSize(bytes) {
         if (bytes === 0) return '0 Bytes';
@@ -563,11 +642,9 @@ function initializeApp() {
 
         // Clear DOM
         document.getElementById("queue-items").innerHTML = "";
-        document.getElementById("results-grid").innerHTML = "";
 
-        // Hide containers
+        // Hide container
         document.getElementById("processing-queue").style.display = "none";
-        document.getElementById("results-container").style.display = "none";
 
         // Reset file input
         fileInput.value = "";
@@ -575,6 +652,12 @@ function initializeApp() {
 }
 
 // Global functions for onclick handlers
+function downloadFile(url, filename) {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+}
 function previewImage(url, filename) {
     const modal = document.createElement('div');
     modal.style.cssText = `
