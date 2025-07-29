@@ -286,9 +286,6 @@ function initializeApp() {
     async function processFile(file, queueItem) {
         const apiKey = apiKeySelect.value;
 
-        // Initialize worker URL if not already done
-        const workerUrl = await window.CONFIG.initializeWorkerUrl();
-
         // Update progress
         queueItem.progress = 30;
         updateQueueItem(queueItem);
@@ -357,7 +354,7 @@ function initializeApp() {
         });
 
         // Make request to worker
-        const response = await fetch(workerUrl, {
+        const response = await fetch(window.CONFIG.WORKER_URL, {
             method: "POST",
             headers: requestHeaders,
             body: requestBody
@@ -421,7 +418,7 @@ function initializeApp() {
 
             if (data.location) {
                 // Fetch the compressed image
-                const imageResponse = await fetch(`${workerUrl}${window.CONFIG.ENDPOINTS.PROXY}${encodeURIComponent(data.location)}`);
+                const imageResponse = await fetch(`${window.CONFIG.WORKER_URL}${window.CONFIG.ENDPOINTS.PROXY}${encodeURIComponent(data.location)}`);
                 const imageBlob = await imageResponse.blob();
                 const imageUrl = URL.createObjectURL(imageBlob);
 

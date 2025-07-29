@@ -8,20 +8,6 @@ export default {
     const url = new URL(request.url);
     const proxyUrl = url.searchParams.get("url");
 
-    // Config endpoint to provide worker URL
-    if (url.pathname === "/config") {
-      return new Response(JSON.stringify({
-        workerUrl: env.WORKER_URL || request.url.split('/config')[0]
-      }), {
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type"
-        }
-      });
-    }
-
     // Debug endpoint
     if (url.pathname === "/debug") {
       return new Response(JSON.stringify({
@@ -33,8 +19,7 @@ export default {
           apiKey1Length: env.API_KEY_1 ? env.API_KEY_1.length : 0,
           apiKey2Length: env.API_KEY_2 ? env.API_KEY_2.length : 0,
           apiKey1Preview: env.API_KEY_1 ? `${env.API_KEY_1.substring(0, 5)}...` : 'not set',
-          apiKey2Preview: env.API_KEY_2 ? `${env.API_KEY_2.substring(0, 5)}...` : 'not set',
-          workerUrlExists: 'WORKER_URL' in env
+          apiKey2Preview: env.API_KEY_2 ? `${env.API_KEY_2.substring(0, 5)}...` : 'not set'
         },
         timestamp: new Date().toISOString()
       }), {
